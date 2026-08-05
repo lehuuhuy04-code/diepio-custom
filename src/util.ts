@@ -21,14 +21,68 @@ import { inspect } from "util";
 import { doVerboseLogs } from "./config";
 import { VectorAbstract } from "./Physics/Vector";
 import ObjectEntity from "./Entity/Object";
+import * as appInsights from "applicationinsights";
+import { KnownSeverityLevel } from "applicationinsights";
+
+// Initialize Application Insights SDK safely
+let telemetryClient: appInsights.TelemetryClient | null = null;
+
+try {
+    const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING || process.env.APPINSIGHTS_INSTRUMENTATIONKEY;
+    if (connectionString) {
+        appInsights.setup(connectionString)
+            .setAutoCollectRequests(true)
+            .setAutoCollectPerformance(true, true)
+            .setAutoCollectExceptions(true)
+            .setAutoCollectDependencies(true)
+            .setAutoCollectConsole(false)
+            .setUseDiskRetryCaching(true)
+            .start();
+        telemetryClient = appInsights.defaultClient;
+    }
+} catch (err) {
+    // Fail-safe: Application Insights failure should never crash the server
+}
+
+/** Utility to track custom metric PlayerCount */
+export const trackPlayerCount = (count: number) => {
+    try {
+        if (telemetryClient) {
+            telemetryClient.trackMetric({ name: "PlayerCount", value: count });
+        }
+    } catch (_) {}
+};
+
+/** Utility to track custom exceptions */
+export const trackException = (exception: Error) => {
+    try {
+        if (telemetryClient) {
+            telemetryClient.trackException({ exception });
+        }
+    } catch (_) {}
+};
 
 /** Logs data prefixed with the Date. */
 export const log = (...args: any[]) => {
-    console.log(`[${Date().split(" ")[4]}]`, ...args)
+    console.log(`[${Date().split(" ")[4]}]`, ...args);
+    try {
+        if (telemetryClient) {
+            const message = args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+            telemetryClient.trackTrace({ message, severity: KnownSeverityLevel.Information });
+        }
+    } catch (_) {}
 }
 
 /** Logs data prefixed with the Date in a yellow format. */
 export const warn = (...args: any[]) => {
+    try {
+        if (telemetryClient) {
+            const message = args.map(a => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+            telemetryClient.trackTrace({ message, severity: KnownSeverityLevel.Warning });
+            telemetryClient.trackMetric({ name: "ExceptionCount", value: 1 });
+        }
+    } catch (_) {}
+
     args = args.map(s => typeof s === "string" ? chalk.yellow(s) : s);
     console.log(chalk.yellow(`[${Date().split(" ")[4]}] WARNING: `), ...args);
 }
@@ -112,6 +166,12 @@ export const getRandomPosition = (entity: ObjectEntity): VectorAbstract => {
  * Logs - Used to have a webhook log here
  */
 export const saveToLog = (title: string, description: string, color: number) => {
+    try {
+        if (telemetryClient) {
+            telemetryClient.trackEvent({ name: title, properties: { description, color: String(color) } });
+        }
+    } catch (_) {}
+
     const hex = chalk.hex("#" + color.toString(16).padStart(6, "0"))
     console.log(hex("[!] " + title + "\n :: " + description));
 }

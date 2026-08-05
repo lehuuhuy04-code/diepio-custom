@@ -133,6 +133,49 @@ export default class HashGrid implements CollisionManager {
         return result;
     }
 
+    private retrieveResult: ObjectEntity[] = [];
+
+    public retrieveEntities(
+        centerX: number,
+        centerY: number,
+        halfWidth: number,
+        halfHeight: number
+    ): ObjectEntity[] {
+        if (this.isLocked) throw new Error("HashGrid is locked! Cannot retrieveEntities() outside of tick");
+        const result = this.retrieveResult;
+        result.length = 0;
+
+        const startX = (centerX - halfWidth - this.gameLeftX) >> CELL_SHIFT;
+        const startY = (centerY - halfHeight - this.gameTopY) >> CELL_SHIFT;
+        const endX = (centerX + halfWidth - this.gameLeftX) >> CELL_SHIFT;
+        const endY = (centerY + halfHeight - this.gameTopY) >> CELL_SHIFT;
+
+        // Maintain within [1, 65536] range
+        const queryId = this.lastQueryId === 0xFFFF ? 1 : this.lastQueryId + 1;
+        this.lastQueryId = queryId;
+
+        for (let y = startY; y <= endY; ++y) {
+            for (let x = startX; x <= endX; ++x) {
+                // TODO: Ensure non-negative keys
+                const key = Math.abs(x + (y * this.hashMul));
+                const cell = this.hashMap[key];
+                if (!cell) continue;
+                for (let i = 0; i < cell.length; ++i) {
+                    const entityId = cell[i];
+                    // Skip already added entities
+                    if (this.queryIdMap[entityId] === queryId) continue;
+                    this.queryIdMap[entityId] = queryId
+                    const entity = this.game.entities.inner[entityId] as ObjectEntity;
+                    // Skip deleted entities
+                    if (!entity || entity.hash === 0) continue;
+                    result.push(entity);
+                }
+            }
+        }
+
+        return result;
+    }
+
     public getFirstMatch(
         centerX: number,
         centerY: number,

@@ -1,0 +1,15 @@
+{
+  "name": "diepcustom-leaderboard-function",
+  "version": "1.0.0",
+  "description": "Azure Function to export top N leaderboard scores from Cosmos DB",
+  "main": "src/functions/leaderboard.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.0.0",
+    "@azure/functions": "^4.0.0",
+    "@azure/identity": "^4.0.0",
+    "@azure/keyvault-secrets": "^4.8.0"
+  }
+}

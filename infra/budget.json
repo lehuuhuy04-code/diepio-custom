@@ -1,0 +1,37 @@
+{
+  "properties": {
+    "category": "Cost",
+    "amount": 50,
+    "timeGrain": "Monthly",
+    "timePeriod": {
+      "startDate": "2026-07-01T00:00:00Z",
+      "endDate": "2027-01-01T00:00:00Z"
+    },
+    "notifications": {
+      "Alert50": {
+        "enabled": true,
+        "operator": "GreaterThan",
+        "threshold": 50,
+        "contactEmails": ["0023411183@student.dthu.edu.vn"],
+        "contactRoles": ["Owner"],
+        "thresholdType": "Actual"
+      },
+      "Alert80": {
+        "enabled": true,
+        "operator": "GreaterThan",
+        "threshold": 80,
+        "contactEmails": ["0023411183@student.dthu.edu.vn"],
+        "contactRoles": ["Owner"],
+        "thresholdType": "Actual"
+      },
+      "Alert95": {
+        "enabled": true,
+        "operator": "GreaterThan",
+        "threshold": 95,
+        "contactEmails": ["0023411183@student.dthu.edu.vn"],
+        "contactRoles": ["Owner"],
+        "thresholdType": "Actual"
+      }
+    }
+  }
+}

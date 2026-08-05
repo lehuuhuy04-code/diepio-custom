@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  diep-server:
+    build: .
+    container_name: diepcustom
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ARENA_TYPE=FFA
+      # Note: Secrets (Cosmos DB, Redis, Google OAuth, Dev Password) are managed centrally via Azure Key Vault (kv-diepcustom)
+    restart: always

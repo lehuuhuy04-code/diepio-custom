@@ -53,6 +53,7 @@ import { Entity, EntityStateFlags } from "../Native/Entity";
 import { saveToVLog } from "../util";
 import { ClientBound, Stat, StatCount, PhysicsFlags, StyleFlags, Tank } from "./Enums";
 import { getTankByName } from "./TankDefinitions";
+import { announcementBus } from "../Cloud/AnnouncementBus";
 
 const RELATIVE_POS_REGEX = new RegExp(/~(-?\d+)?/);
 
@@ -72,7 +73,8 @@ export const enum CommandID {
     adminSummon = "admin_summon",
     adminKillAll = "admin_kill_all",
     adminKillEntity = "admin_kill_entity",
-    adminCloseArena = "admin_close_arena"
+    adminCloseArena = "admin_close_arena",
+    adminGlobalAnnounce = "admin_global_announce"
 }
 
 export interface CommandDefinition {
@@ -193,6 +195,13 @@ export const commandDefinitions = {
     admin_close_arena: {
         id: CommandID.adminCloseArena,
         description: "Closes the current arena",
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: false
+    },
+    admin_global_announce: {
+        id: CommandID.adminGlobalAnnounce,
+        usage: "[message] [?color]",
+        description: "Broadcasts a global announcement to ALL rooms/instances via Azure Service Bus",
         permissionLevel: AccessLevel.FullAccess,
         isCheat: false
     }
@@ -400,6 +409,14 @@ export const commandCallbacks = {
             const entity = game.entities.inner[id];
             if (Entity.exists(entity) && entity instanceof TEntity) entity.destroy();
         }
+    },
+    admin_global_announce: (client: Client, message: string = "", color: string = "0x00FFA0") => {
+        if (!message) return "Usage: admin_global_announce [message] [?color]";
+        announcementBus.publish({
+            text: `[GLOBAL BROADCAST] ${message}`,
+            color: parseInt(color) || 0x00FFA0
+        });
+        return `Published global announcement to Azure Service Bus: ${message}`;
     }
 } as Record<CommandID, CommandCallback>
 

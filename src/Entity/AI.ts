@@ -149,9 +149,10 @@ export class AI {
 
         // const entities = this.game.entities.inner.slice(0, this.game.entities.lastId);
         const root = (this.owner.rootParent === this.owner && (this.owner.relationsData.values.owner as ObjectEntity)?.positionData) ? this.owner.relationsData.values.owner as ObjectEntity : this.owner.rootParent;
-        const entities = this.viewRange === Infinity
-            ? PackedEntitySet.FULL_SET
-            : this.game.entities.collisionManager.retrieve(
+        const isInfinity = this.viewRange === Infinity;
+        const entities = isInfinity
+            ? this.game.entities.inner
+            : this.game.entities.collisionManager.retrieveEntities(
                 root.positionData.values.x, root.positionData.values.y,
                 this.viewRange, this.viewRange
             );
@@ -159,41 +160,35 @@ export class AI {
         let closestEntity = null;
         let closestDistSq = this.viewRange ** 2;
 
-        for (let i = 0; i < entities.data.length; ++i) {
-            let chunk = entities.data[i];
+        const maxLen = isInfinity ? this.game.entities.lastId + 1 : entities.length;
 
-            while (chunk) {
-                const bitValue = chunk & -chunk;
-                const bitIdx = 31 - Math.clz32(bitValue);
-                chunk ^= bitValue;
-                const id = 32 * i + bitIdx;
+        for (let i = 0; i < maxLen; ++i) {
+            const entity = entities[i];
+            
+            if (!entity || entity.hash === 0) continue;
+            if (!ObjectEntity.isObject(entity)) continue;
 
-                const entity = this.game.entities.inner[id];
-                if (!entity || entity.hash === 0) continue;
-                if (!ObjectEntity.isObject(entity)) continue;
+            if (!entity.isPhysical) continue;
+            // Check if the target is living
+            if (this.targetFilterNonLiving && !entity.healthData) continue;
+            // Check if the target is a base
+            if (entity.physicsData.values.flags & PhysicsFlags.isBase) continue;
+            // Don't target entities who have an object owner
+            if (entity.relationsData.values.owner !== null && entity.relationsData.values.owner.positionData) continue;
+            // Check if target is own team
+            if (entity.relationsData.values.team === team) continue;
+            // Check if target has a collider
+            if (entity.physicsData.values.sides === 0) continue;
+            // Custom check
+            if (!this.targetFilter(entity.positionData.values)) continue;
 
-                if (!entity.isPhysical) continue;
-                // Check if the target is living
-                if (this.targetFilterNonLiving && !entity.healthData) continue;
-                // Check if the target is a base
-                if (entity.physicsData.values.flags & PhysicsFlags.isBase) continue;
-                // Don't target entities who have an object owner
-                if (entity.relationsData.values.owner !== null && entity.relationsData.values.owner.positionData) continue;
-                // Check if target is own team
-                if (entity.relationsData.values.team === team) continue;
-                // Check if target has a collider
-                if (entity.physicsData.values.sides === 0) continue;
-                // Custom check
-                if (!this.targetFilter(entity.positionData.values)) continue;
+            const dX = entity.positionData.values.x - rootPos.x;
+            const dY = entity.positionData.values.y - rootPos.y;
+            const distSq = dX * dX + dY * dY;
 
-                const dX = entity.positionData.values.x - rootPos.x;
-                const dY = entity.positionData.values.y - rootPos.y;
-                const distSq = dX * dX + dY * dY;
-
-                if (distSq < closestDistSq) {
-                    closestEntity = entity;
-                    closestDistSq = distSq;
-                }
+            if (distSq < closestDistSq) {
+                closestEntity = entity;
+                closestDistSq = distSq;
             }
         }
 

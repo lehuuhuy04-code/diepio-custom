@@ -37,6 +37,12 @@ export default interface CollisionManager {
         halfWidth: number,
         halfHeight: number
     ): PackedEntitySet
+    retrieveEntities(
+        centerX: number,
+        centerY: number,
+        halfWidth: number,
+        halfHeight: number
+    ): ObjectEntity[];
     retrieveEntitiesByEntity(entity: ObjectEntity): PackedEntitySet;
     forEachCollisionPair(
         callback: (entityA: ObjectEntity, entityB: ObjectEntity) => void

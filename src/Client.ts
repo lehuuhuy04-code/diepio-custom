@@ -36,6 +36,7 @@ import { AI, AIState, Inputs } from "./Entity/AI";
 import AbstractBoss from "./Entity/Boss/AbstractBoss";
 import { executeCommand } from "./Const/Commands";
 import { bannedClients } from ".";
+import { playerStore } from "./Cloud/PlayerStore";
 
 /** XORed onto the tank id in the Tank Upgrade packet. */
 const TANK_XOR = config.magicNum % TankCount;
@@ -89,6 +90,8 @@ export default class Client {
     private connectTick: number;
     /** The last tick that the client received a ping. */
     private lastPingTick: number;
+    /** The client's session ID for reconnects. */
+    public sessionId: string | null = null;
     /** The client's access level. */
     public accessLevel: config.AccessLevel = config.AccessLevel.NoAccess;
 
@@ -132,7 +135,8 @@ export default class Client {
     /** Sends data to client. */
     public send(data: Uint8Array) {
         const ws = this.ws;
-        if (!ws) throw new Error("Can't write to a closed websocket - shouldn't be referencing a closed client");
+        // FIX (Task 26/27): Safely ignore writes to closed WebSockets instead of throwing an Uncaught Exception.
+        if (!ws || this.terminated) return;
         ws.send(data, true, true);
     }
 
@@ -147,6 +151,26 @@ export default class Client {
     public terminate() {
         // if there's still a ws connected, close it - onclose handler will then terminate for us
         if (this.terminated) return;
+
+        // TASK 4 Patch: Save player profile/high score on disconnect/termination
+        if (this.camera?.cameraData) {
+            const currentScore = this.camera.cameraData.values?.score || 0;
+            const playerId = this.sessionId || (this.ws ? this.ws.getUserData().ipAddress : "anonymous");
+            const name = this.camera.cameraData.player?.nameData?.values?.name || "Unnamed";
+            const defaultAvatar = "https://stdiepcustomavt.blob.core.windows.net/avatars/avatar1.svg";
+
+            playerStore.getPlayer(playerId).then((existing) => {
+                const highScore = Math.max(existing?.highScore || 0, currentScore);
+                playerStore.upsertPlayer({
+                    playerId,
+                    displayName: name,
+                    avatarUrl: existing?.avatarUrl || defaultAvatar,
+                    highScore,
+                    lastPlayedAt: new Date().toISOString()
+                });
+            }).catch(() => {});
+        }
+
         if (this.ws) return this.ws.close();
 
         this.terminated = true;
@@ -155,7 +179,14 @@ export default class Client {
         this.inputs.deleted = true;
         this.inputs.movement.magnitude = 0;
 
-        if (Entity.exists(this.camera)) this.camera.delete();
+        if (this.sessionId && Entity.exists(this.camera) && this.camera.cameraData.values.player) {
+            this.game.disconnectedSessions.set(this.sessionId, { 
+                camera: this.camera, 
+                expireAt: this.game.tick + 60 * config.tps 
+            });
+        } else {
+            if (Entity.exists(this.camera)) this.camera.delete();
+        }
     }
 
     /** Handles to incoming messages. */
@@ -163,6 +194,8 @@ export default class Client {
         if (!isBinary) return this.terminate();
         const data = new Uint8Array(buffer).slice();
         if (data[0] === 0x00 && data.byteLength === 1) return this.terminate(); // We do not host ping servers.
+        // TASK 26 FIX: Update lastPingTick on every valid incoming packet, not just ServerBound.Ping.
+        this.lastPingTick = this.game.tick;
         const header = data[0];
         if (header === ServerBound.Ping) {
             this.lastPingTick = this.game.tick;

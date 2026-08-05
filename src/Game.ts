@@ -22,16 +22,20 @@ import Writer from "./Coder/Writer";
 import EntityManager from "./Native/Manager";
 import Client from "./Client";
 import ArenaEntity from "./Native/Arena";
+import { CameraEntity } from "./Native/Camera";
+import { Entity } from "./Native/Entity";
 import FFAArena from "./Gamemodes/FFA";
 import SurvivalArena from "./Gamemodes/Survival";
 import Teams2Arena from "./Gamemodes/Team2";
 import Teams4Arena from "./Gamemodes/Team4";
+import { redisStore } from "./Cloud/RedisStore";
 import DominationArena from "./Gamemodes/Domination";
 import TagArena from "./Gamemodes/Tag";
 import MothershipArena from "./Gamemodes/Mothership";
 import MazeArena from "./Gamemodes/Maze";
 import SandboxArena from "./Gamemodes/Sandbox";
 import { ClientBound } from "./Const/Enums";
+import { games } from ".";
 
 /**
  * WriterStream that broadcasts to all of the game's WebSockets.
@@ -55,8 +59,8 @@ class WSSWriterStream extends Writer {
 
 
 /** @deprecated */
-type DiepGamemodeID = "ffa" | "survival" | "teams" | "4teams" | "dom" | "tag" | "mot" | "maze" | "sandbox";
-const GamemodeToArenaClass: Record<DiepGamemodeID, (typeof ArenaEntity) | null> = {
+export type DiepGamemodeID = "ffa" | "survival" | "teams" | "4teams" | "dom" | "tag" | "mot" | "maze" | "sandbox";
+export const GamemodeToArenaClass: Record<DiepGamemodeID, (typeof ArenaEntity) | null> = {
     "ffa": FFAArena,
     "survival": SurvivalArena,
     "teams": Teams2Arena,
@@ -71,6 +75,8 @@ const GamemodeToArenaClass: Record<DiepGamemodeID, (typeof ArenaEntity) | null> 
 /**
  * Used for determining which endpoints go to the default.
  */
+import { announcementBus } from "./Cloud/AnnouncementBus";
+
 export default class GameServer {
     /** Stores total player count. */
     public static globalPlayerCount = 0;
@@ -80,12 +86,16 @@ export default class GameServer {
     public gamemode: string;
     /** The arena's display name. */
     public name: string;
+    /** The party code of the game server. */
+    public partyCode: string;
     /** Whether or not to put players on the map. */
     public playersOnMap: boolean = false;
     /** All clients connected. */
     public clients: Set<Client>;
     /** All clients and usernames waiting to spawn while a countdown is active. */
     public clientsAwaitingSpawn: Map<Client, string> = new Map();
+    /** Stores disconnected cameras by their session id (Externalized via RedisStore) */
+    public disconnectedSessions = redisStore;
     /** Entity manager of the game. */
     public entities: EntityManager;
     /** The current game tick. */
@@ -96,8 +106,12 @@ export default class GameServer {
     private _tickInterval: NodeJS.Timeout;
     /** The Arena instantiator */
     private _arenaClass: typeof ArenaEntity;
+    /** Flag indicating whether this is an initial default room that should never be garbage collected */
+    public isDefaultRoom: boolean = false;
+    /** Grace period timer handle for room cleanup */
+    private _gcTimer: NodeJS.Timeout | null = null;
 
-    public constructor(ArenaClass: DiepGamemodeID | typeof ArenaEntity, name: string) {
+    public constructor(ArenaClass: DiepGamemodeID | typeof ArenaEntity, name: string, partyCode?: string) {
         if (typeof ArenaClass === "string") {
             this.gamemode = ArenaClass;
             ArenaClass = GamemodeToArenaClass[ArenaClass] ?? SandboxArena;
@@ -110,6 +124,7 @@ export default class GameServer {
         }
 
         this.name = name;
+        this.partyCode = partyCode || Math.random().toString(36).substring(2, 8).toUpperCase();
 
         this.clients = new Set();
         // Keeps player count updating per addition
@@ -117,6 +132,12 @@ export default class GameServer {
         this.clients.add = (client: Client) => {
             GameServer.globalPlayerCount += 1;
             this.broadcastPlayerCount();
+
+            if (this._gcTimer) {
+                clearTimeout(this._gcTimer);
+                this._gcTimer = null;
+                util.log(`[GC] Cancelled GC timer for room '${this.partyCode}' - client joined (${this.clients.size + 1} active)`);
+            }
             
             return _add.call(this.clients, client);
         }
@@ -127,6 +148,13 @@ export default class GameServer {
                 GameServer.globalPlayerCount -= 1;
                 this.broadcastPlayerCount();
                 this.clientsAwaitingSpawn.delete(client);
+
+                if (this.clients.size === 0 && !this.isDefaultRoom && !this._gcTimer) {
+                    util.log(`[GC] Room '${this.partyCode}' is empty. Starting 60s grace period timer before cleanup.`);
+                    this._gcTimer = setTimeout(() => {
+                        this.destroyRoom();
+                    }, 60000);
+                }
             }
 
             return success;
@@ -146,6 +174,10 @@ export default class GameServer {
         this._arenaClass = ArenaClass;
         this.arena = new ArenaClass(this);
 
+        announcementBus.subscribe((msg) => {
+            this.broadcastMessage(msg.text, msg.color || 0x00FFA0, msg.time || 5000, msg.id || "");
+        });
+
         this._tickInterval = setInterval(() => {
             if (this.clients.size) this.tickLoop(); // Don't tick empty games
         }, config.mspt);
@@ -157,6 +189,7 @@ export default class GameServer {
     }
     /** Broadcasts a player count packet. */
     public broadcastPlayerCount() {
+        util.trackPlayerCount(GameServer.globalPlayerCount);
         this.broadcast().vu(ClientBound.PlayerCount).vu(GameServer.globalPlayerCount).send();
     }
     /** Sends a notification to all clients connected to this game server. */
@@ -222,8 +255,34 @@ export default class GameServer {
         // process inputs before ticking entities for lower input latency
         for (const client of this.clients) client.tick(this.tick);
 
+        // Cleanup expired disconnected sessions
+        for (const [sessionId, session] of this.disconnectedSessions.entries()) {
+            if (this.tick >= session.expireAt) {
+                if (Entity.exists(session.camera)) session.camera.delete();
+                this.disconnectedSessions.delete(sessionId);
+            }
+        }
+
         this.entities.tick(this.tick);
 
         this.entities.postTick(this.tick);
+    }
+
+    /** Destroys an empty non-default room and removes it from the active games list */
+    public destroyRoom() {
+        if (this.isDefaultRoom) return;
+        if (this.clients.size > 0) return;
+
+        util.log(`[GC] Grace period expired for room '${this.partyCode}'. Destroying room and removing from games list.`);
+        this.end();
+
+        const index = games.indexOf(this);
+        if (index !== -1) {
+            games.splice(index, 1);
+        }
+        if (this._gcTimer) {
+            clearTimeout(this._gcTimer);
+            this._gcTimer = null;
+        }
     }
 }

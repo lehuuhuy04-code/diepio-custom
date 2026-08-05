@@ -29,9 +29,21 @@ import { ColorsHexCode } from "./Const/Enums";
 import FFAArena from "./Gamemodes/FFA";
 import SandboxArena from "./Gamemodes/Sandbox";
 
+import { appConfigStore } from "./Cloud/AppConfigStore";
+
 const PORT = config.serverPort;
 const ENABLE_API = config.enableApi && config.apiLocation;
 const ENABLE_CLIENT = config.enableClient && config.clientLocation && fs.existsSync(config.clientLocation);
+
+const app = App({});
+
+// Fetch non-secret runtime configs from Azure App Configuration on startup
+appConfigStore.getNumber("max-players-per-room", config.maxPlayersPerRoom).then((maxPlayers) => {
+    util.log(`[AppConfig] Fetched max-players-per-room from Azure App Configuration: ${maxPlayers}`);
+});
+appConfigStore.getValue("arena-type", config.arenaType).then((arenaType) => {
+    util.log(`[AppConfig] Fetched arena-type from Azure App Configuration: ${arenaType}`);
+});
 
 if (ENABLE_API) util.log(`Rest API hosting is enabled and is now being hosted at /${config.apiLocation}`);
 if (ENABLE_CLIENT) util.log(`Client hosting is enabled and is now being hosted from ${config.clientLocation}`);
@@ -39,14 +51,13 @@ if (ENABLE_CLIENT) util.log(`Client hosting is enabled and is now being hosted f
 export const bannedClients = new Set<string>();
 const connections = new Map<string, number>();
 const allClients = new Set<Client>();
-const app = App({});
-const games: GameServer[] = [];
+export const games: GameServer[] = [];
 
 app.ws("/*", {
     compression: SHARED_COMPRESSOR,
     sendPingsAutomatically: true,
     maxPayloadLength: config.wssMaxMessageSize,
-    idleTimeout: 10,
+    idleTimeout: 60,
     upgrade: (res, req, context) => {
         res.upgrade({ client: null, ipAddress: "", gamemode: req.getUrl().slice(1) } as ClientWrapper,
             req.getHeader('sec-websocket-key'),
@@ -62,7 +73,12 @@ app.ws("/*", {
             return ws.close();
         }
         connections.set(ipAddress, conns + 1);
-        const game = games.find(({ gamemode }) => gamemode === ws.getUserData().gamemode);
+        let requestedGamemode = ws.getUserData().gamemode;
+        let game = games.find(({ gamemode }) => gamemode === requestedGamemode);
+        if (!game) {
+            util.warn(`[WSS] Gamemode '${requestedGamemode}' not found, falling back to default game '${games[0]?.gamemode}'`);
+            game = games[0];
+        }
         if (!game) {
             return ws.close();
         }
@@ -90,6 +106,9 @@ app.get("/*", (res, req) => {
     util.saveToVLog("Incoming request to " + req.getUrl());
     res.onAborted(() => {});
     if (ENABLE_API && req.getUrl().startsWith(`/${config.apiLocation}`)) {
+        res.writeHeader("Access-Control-Allow-Origin", config.corsAllowedOrigins);
+        res.writeHeader("Access-Control-Allow-Headers", "*");
+        res.writeHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         switch (req.getUrl().slice(config.apiLocation.length + 1)) {
             case "/":
                 res.writeStatus("200 OK").end();
@@ -152,13 +171,37 @@ app.listen(PORT, (success) => {
 
     util.log(`Listening on port ${PORT}`);
 
-    // RULES(0): No two game servers should share the same endpoint
-    //
-    // NOTES(0): As of now, both servers run on the same process (and thread) here
-    const ffa = new GameServer(FFAArena, "FFA");
-    const sbx = new GameServer(SandboxArena, "Sandbox");
-    
-    games.push(ffa, sbx);
+    if (config.arenaType) {
+        let arenaClass;
+        let name;
+        switch (config.arenaType.toLowerCase()) {
+            case "ffa":
+                arenaClass = FFAArena;
+                name = "FFA";
+                break;
+            case "sandbox":
+                arenaClass = SandboxArena;
+                name = "Sandbox";
+                break;
+            default:
+                throw new Error(`Unknown ARENA_TYPE: ${config.arenaType}. Supported types: ffa, sandbox.`);
+        }
+        util.log(`Booting up dedicated ${name} server instance...`);
+        const primaryGame = new GameServer(arenaClass, name);
+        primaryGame.isDefaultRoom = true;
+        games.push(primaryGame);
+    } else {
+        // RULES(0): No two game servers should share the same endpoint
+        // NOTES(0): Running all default servers for local testing
+        util.log(`Booting up all default server instances (Local Mode)...`);
+        const ffa = new GameServer(FFAArena, "FFA");
+        ffa.isDefaultRoom = true;
+
+        const sbx = new GameServer(SandboxArena, "Sandbox");
+        sbx.isDefaultRoom = true;
+        
+        games.push(ffa, sbx);
+    }
 
     util.saveToLog("Servers up", "All servers booted up.", 0x37F554);
     util.log("Dumping endpoint -> gamemode routing table");

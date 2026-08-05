@@ -18,7 +18,10 @@
 
 const BUILD = "6f59094d60f98fafc14371671d3ff31ef4d75d9e";
 const CDN = "https://static.diep.io/";
-const API_URL = `${window.location.href}api/`;
+const SERVER_HOST = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? window.location.host
+    : "ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io";
+const API_URL = `https://${SERVER_HOST}/api/`;
 
 const CHANGELOG = [
     "Updated recently",
@@ -283,8 +286,8 @@ const CUSTOM_ADDONS = {
     // This is a tutorial addon made for showcasing how custom addon renders are to be defined.
     "tutorial": entity => {
         // This if statement isnt totally necessary but might help your IDE recognize the type of "entity" which simplifies development later. It can be removed.
-        if(!(entity instanceof $Entity)) return;
-        
+        if (!(entity instanceof $Entity)) return;
+
         /*
         We are currently on the root level meaning we can only access the "entity" the addon is placed upon. This means that "entity" is either a barrel or a tank.
         It is possible to change its data even at the root level.
@@ -317,8 +320,8 @@ const CUSTOM_ADDONS = {
         */
     },
     "auto2": entity => {
-        if(!(entity instanceof $Entity)) return;
-                
+        if (!(entity instanceof $Entity)) return;
+
         const rotator = entity.createChild(false);
         rotator.defaults();
         rotator.physicsData.size = 5;
@@ -327,10 +330,10 @@ const CUSTOM_ADDONS = {
         rotator.styleData.isVisible = false;
 
         const count = 2;
-        for(let i = 0; i < count; ++i) {
+        for (let i = 0; i < count; ++i) {
             const socket = rotator.createChild(false);
             socket.defaults();
-            
+
             socket.positionData.angle = i * Math.PI * 2 / count;
             socket.positionData.x = Math.cos(socket.positionData.angle) * 40;
             socket.positionData.y = Math.sin(socket.positionData.angle) * 40;
@@ -354,7 +357,7 @@ const CUSTOM_ADDONS = {
         }
     },
     "arrasspawnerbarrel": entity => {
-        if(!(entity instanceof $Entity)) return;
+        if (!(entity instanceof $Entity)) return;
 
         const rect1 = entity.createChild(false);
         rect1.defaults();
@@ -388,7 +391,7 @@ const CUSTOM_COMMANDS = [
         "usage": "[password]",
         "description": "Sets the dev password (reconnect required)",
         "callback": args => {
-            if(!args[0]) return;
+            if (!args[0]) return;
             window.localStorage.setItem("password", args[0]);
         }
     }, {
@@ -404,10 +407,10 @@ const CUSTOM_COMMANDS = [
         "usage": "[?interval]",
         "description": "Sets the interval in which gamemodes are reloaded automatically (milliseconds, 'never' or 'connect') or reloads once if no interval is given",
         "callback": args => {
-            if(args[0]) {
+            if (args[0]) {
                 const num = parseInt(args[0]);
-                if(isNaN(num)) {
-                    switch(args[0]) {
+                if (isNaN(num)) {
+                    switch (args[0]) {
                         case "never":
                             return Module.reloadServersInterval = -1;
                         case "connect":
@@ -423,10 +426,10 @@ const CUSTOM_COMMANDS = [
         "usage": "[?interval]",
         "description": "Sets the interval in which tanks are reloaded automatically (milliseconds, 'never' or 'connect') or reloads once if no interval is given",
         "callback": args => {
-            if(args[0]) {
+            if (args[0]) {
                 const num = parseInt(args[0]);
-                if(isNaN(num)) {
-                    switch(args[0]) {
+                if (isNaN(num)) {
+                    switch (args[0]) {
                         case "never":
                             return Module.reloadTanksInterval = -1;
                         case "connect":
@@ -442,10 +445,10 @@ const CUSTOM_COMMANDS = [
         "usage": "[?interval]",
         "description": "Sets the interval in which commands are reloaded automatically (milliseconds, 'never' or 'connect') or reloads once if no interval is given",
         "callback": args => {
-            if(args[0]) {
+            if (args[0]) {
                 const num = parseInt(args[0]);
-                if(isNaN(num)) {
-                    switch(args[0]) {
+                if (isNaN(num)) {
+                    switch (args[0]) {
                         case "never":
                             return Module.reloadCommandsInterval = -1;
                         case "connect":

@@ -727,6 +727,49 @@ class ASMConsts {
         const socket = Module.cp5.sockets[socketId];
         if(!socket || socket.readyState !== 1) return 0;
         const packetId = Module.HEAPU8[packetStart];
+        if (packetId === 0) {
+            try {
+                const packetBytes = Module.HEAPU8.subarray(packetStart + 1, packetStart + packetLength);
+                let offset = 0;
+                const readNTString = () => {
+                    let end = offset;
+                    while (end < packetBytes.length && packetBytes[end] !== 0) end++;
+                    let str = "";
+                    for (let i = offset; i < end; i++) str += String.fromCharCode(packetBytes[i]);
+                    offset = end + 1;
+                    return str;
+                };
+                const buildHash = readNTString();
+                const pw = readNTString();
+
+                const rawHash = window.location.hash || "";
+                const cleanParty = rawHash.startsWith("#") ? rawHash.slice(1) : rawHash;
+
+                const encodeString = (str) => {
+                    const buf = new Uint8Array(str.length + 1);
+                    for (let i = 0; i < str.length; i++) buf[i] = str.charCodeAt(i);
+                    buf[str.length] = 0;
+                    return buf;
+                };
+
+                const bOpcode = new Uint8Array([0x00]);
+                const bHash = encodeString(buildHash);
+                const bPw = encodeString(pw);
+                const bParty = encodeString(cleanParty);
+
+                const cleanPacket = new Uint8Array(bOpcode.length + bHash.length + bPw.length + bParty.length);
+                cleanPacket.set(bOpcode, 0);
+                cleanPacket.set(bHash, bOpcode.length);
+                cleanPacket.set(bPw, bOpcode.length + bHash.length);
+                cleanPacket.set(bParty, bOpcode.length + bHash.length + bPw.length);
+
+                console.log(`[CLIENT OVERRIDE INIT] buildHash="${buildHash}" | pw="${pw}" | cleanParty="${cleanParty}"`);
+                socket.send(cleanPacket);
+                return 1;
+            } catch(err) {
+                console.warn("[CLIENT OVERRIDE INIT] Error overriding Init packet:", err);
+            }
+        }
         if (packetId === 5) {
             sendThrottledPing(socket);
             return 1;
@@ -1233,7 +1276,10 @@ class ASMConsts {
     }
 
     static getWindowLocation() {
-        return Module.allocateUTF8(window.location.hash);
+        const rawHash = window.location.hash || "";
+        const cleanHash = rawHash.startsWith("#") ? rawHash.slice(1) : rawHash;
+        console.log("[GET_WINDOW_LOCATION]", cleanHash);
+        return Module.allocateUTF8(cleanHash);
     }
 
     static setLoadingStatus(status) {
@@ -1258,7 +1304,16 @@ class ASMConsts {
 
     static createWebSocket(urlPtr) {
         const url = Module.UTF8ToString(urlPtr);
-        const ws = new WebSocket(`ws${location.protocol.slice(4)}//${location.host}/${url.slice(5, url.length - 4)}`);
+        console.log("[WS Debug] WASM raw urlPtr string:", url);
+        const targetHost = typeof SERVER_HOST !== "undefined" ? SERVER_HOST : location.host;
+        const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+        let roomPath = url;
+        if (roomPath.includes("/")) roomPath = roomPath.substring(roomPath.lastIndexOf("/") + 1);
+        if (roomPath.includes(":")) roomPath = roomPath.split(":")[0];
+        if (!roomPath || roomPath === "80" || roomPath === "443") roomPath = "ffa";
+        const wsUrl = `${wsProtocol}//${targetHost}/${roomPath}`;
+        console.log("[WS Debug] Connecting to WebSocket URL:", wsUrl);
+        const ws = new WebSocket(wsUrl);
         ws.binaryType = "arraybuffer";
         ws.events = [];
         ws.onopen = function() {
@@ -1308,7 +1363,18 @@ class ASMConsts {
     }
 
     static findServerById(requestId, endpoint) {
-        Module.exports.restReply(requestId, 0, 0, 0);
+        if(!Module.servers || !Module.servers.length) {
+            Module.exports.restReply(requestId, 0, 0, 0);
+            return;
+        }
+        const server = Module.servers[0];
+        const id = Module.allocateUTF8(server.gamemode);
+        const ipv4 = Module.allocateUTF8(server.gamemode);
+        const ipv6 = Module.allocateUTF8(server.gamemode);
+        Module.exports.restReply(requestId, id, ipv4, ipv6);
+        Module.exports.free(id);
+        Module.exports.free(ipv4);
+        Module.exports.free(ipv6);
     }
 
     static invalidPartyId() {

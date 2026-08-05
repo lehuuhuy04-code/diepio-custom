@@ -22,6 +22,9 @@ export const buildHash: string = "6f59094d60f98fafc14371671d3ff31ef4d75d9e";
 /** The port the server is hosting its game server on. */
 export const serverPort: number = parseInt(process.env.PORT || "8080");
 
+/** The specific arena gamemode to host. If empty, hosts all default arenas. */
+export const arenaType: string = process.env.ARENA_TYPE || "";
+
 /** Milliseconds per tick in the game. */
 export const mspt: number = 40;
 
@@ -62,7 +65,10 @@ export const apiLocation: string = "api";
 export const enableCommands: boolean = true;
 
 /** Is hosting a client */
-export const enableClient: boolean = true;
+export const enableClient: boolean = false;
+
+/** Allowed CORS origins for API requests */
+export const corsAllowedOrigins: string = "*";
 
 /** Client files location, ignored if enableClient is false, path from the root dir of the project */
 export const clientLocation: string = "./client";
@@ -111,3 +117,6 @@ export const defaultAccessLevel: AccessLevel = AccessLevel.BetaAccess;
 
 /** Maximum level that player tanks can have. Default: 45 */
 export const maxPlayerLevel = 45;
+
+/** Maximum players allowed per GameServer room */
+export const maxPlayersPerRoom = 30;
