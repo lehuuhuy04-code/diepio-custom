@@ -2,7 +2,7 @@
 
 > **Môn học:** Điện toán đám mây (Cloud Computing)  
 > **Đồ án Cuối kỳ:** Xây dựng & Triển khai Hệ thống Game Server Realtime đa dịch vụ trên Microsoft Azure  
-> **Repository:** [https://github.com/abcxff/diepcustom](https://github.com/abcxff/diepcustom)
+> **Repository:** [https://github.com/lehuuhuy04-code/diepio-custom.git](https://github.com/lehuuhuy04-code/diepio-custom.git)
 
 ---
 
@@ -100,14 +100,6 @@ docker buildx build --platform linux/amd64 -t acrdiepcustom.azurecr.io/diepcusto
 
 ---
 
-## 📑 TÀI LIỆU DỰ ÁN
-
-- 📘 **Kịch bản Demo Day:** [docs/demo-day-script.md](docs/demo-day-script.md)
-- 📗 **Báo cáo triển khai:** [docs/deployment-log.md](docs/deployment-log.md)
-- 📙 **Tên tài nguyên Azure:** [docs/azure-resource-names.md](docs/azure-resource-names.md)
-
----
-
 ## 👥 THÀNH VIÊN NHÓM THỰC HIỆN
 
 1. **Lê Hữu Huy** — MSSV: `0023411183` (Trưởng nhóm / Leader)
@@ -117,4 +109,4 @@ docker buildx build --platform linux/amd64 -t acrdiepcustom.azurecr.io/diepcusto
 5. **Trần Trung Hậu** — MSSV: `0023411203`
 
 ---
-*Dự án thuộc môn học Điện toán đám mây — Đồ án cuối kỳ.*
+
