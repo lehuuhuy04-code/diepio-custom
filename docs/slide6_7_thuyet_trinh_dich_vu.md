@@ -1,7 +1,7 @@
-# KỊCH BẢN THUYẾT TRÌNH CHI TIẾT SLIDE 6 & SLIDE 7 (13 DỊCH VỤ AZURE)
+# KỊCH BẢN THUYẾT TRÌNH KẾT HỢP DEMO DAY CHI TIẾT SLIDE 6 & SLIDE 7 (13 DỊCH VỤ AZURE)
 
 > **Tài liệu tham chiếu:** Đồ án Cuối kỳ Môn Điện toán đám mây — Hệ thống DiepCustom  
-> **Đặc điểm:** Sắp xếp **chính xác 100% theo thứ tự 13 dịch vụ từ Hình 1 (Slide 6) và Hình 2 (Slide 7)**, viết dưới dạng các đoạn văn thuyết trình liền mạch, tự nhiên, chính xác với hạ tầng thực tế đã triển khai trên Azure Cloud.
+> **Đặc điểm:** Tích hợp trực tiếp **Thao tác Demo (Đường dẫn Portal / Lệnh cURL / Script Terminal)** đi kèm **Lời thuyết trình mẫu (Vừa nói vừa làm)** đúng 100% theo thứ tự 13 dịch vụ từ Hình 1 (Slide 6) và Hình 2 (Slide 7).
 
 ---
 
@@ -9,45 +9,70 @@
 
 ---
 
-### 1. Container Apps (`ca-diepcustom-server`)
-* **Nội dung slide:** Host Game Server Node.js/TypeScript, xử lý kết nối WebSocket realtime đa người chơi.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dạ thưa thầy và các bạn, dịch vụ đầu tiên trong nhóm Tính toán là **Azure Container Apps (`ca-diepcustom-server`)**. Đây chính là 'trái tim' tính toán của hệ thống. Tụi em sử dụng dịch vụ Serverless Container này để host Game Server Node.js/TypeScript, gánh toàn bộ kết nối thời gian thực WebSocket `wss://` của người chơi. Container Apps giúp hệ thống tự động mở rộng theo nhu cầu (Autoscaling từ 1 đến 10 Replicas) dựa trên quy tắc KEDA, đồng thời quản lý tự động chứng chỉ bảo mật SSL/TLS HTTPS Ingress mà nhóm không cần cấu hình Nginx phức tạp."*
+### 1. Azure Container Apps (`ca-diepcustom-server`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Lệnh cURL kiểm tra danh sách máy chủ active:**
+    ```powershell
+    curl.exe -s https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/api/servers
+    ```
+  - **Đường dẫn Azure Portal:** `Resource groups` $\rightarrow$ `rg-diepcustom` $\rightarrow$ `ca-diepcustom-server` $\rightarrow$ `Revisions and replicas`.
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dạ thưa thầy và các bạn, dịch vụ đầu tiên trong nhóm Tính toán là **Azure Container Apps (`ca-diepcustom-server`)**. Em đang chạy lệnh cURL trực tiếp tới endpoint của Container App trên Cloud. Đây chính là 'trái tim' tính toán của hệ thống, host Game Server Node.js/TypeScript và gánh toàn bộ kết nối WebSocket `wss://` thời gian thực. Hạ tầng tự động quản lý chứng chỉ HTTPS Ingress và tự động mở rộng từ 1 đến 10 Replicas dựa theo quy tắc KEDA mà nhóm không cần tự cấu hình Nginx."*
 
 ---
 
-### 2. Container Registry (`acrdiepcustom.azurecr.io`)
-* **Nội dung slide:** Kho Private Registry quản lý các bản build Docker Image (tag v1, v10, v14) an toàn.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ hai là **Azure Container Registry (`acrdiepcustom.azurecr.io`)**. Đây là kho lưu trữ Docker Image riêng tư và an toàn của nhóm. Toàn bộ quy trình đóng gói ứng dụng đều được thực hiện thông qua lệnh `az acr build`, lưu trữ các bản build chính thức như `diepcustom-server:v14`. Khi Container Apps cần nâng cấp Revision mới, hạ tầng Azure sẽ kéo trực tiếp Docker Image từ ACR nội bộ với tốc độ đường truyền cực nhanh trong cùng Region Southeast Asia."*
+### 2. Azure Container Registry (`acrdiepcustom.azurecr.io`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Đường dẫn Azure Portal:** `Resource groups` $\rightarrow$ `rg-diepcustom` $\rightarrow$ `acrdiepcustom` $\rightarrow$ Menu **`Repositories`** $\rightarrow$ `diepcustom-server`.
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ hai là **Azure Container Registry (`acrdiepcustom.azurecr.io`)**. Khi em mở menu Repositories trên Azure Portal, thầy và các bạn có thể thấy đây là kho Docker Image riêng tư quản lý tập trung các bản build của ứng dụng như `diepcustom-server:v14`. Khi Container Apps nâng cấp Revision mới, hạ tầng sẽ kéo trực tiếp Docker Image từ ACR nội bộ này với tốc độ siêu nhanh trong cùng Region Southeast Asia."*
 
 ---
 
-### 3. Cosmos DB (NoSQL) (`cosmos-diepcustom`)
-* **Nội dung slide:** Lưu trữ Player Profile và HighScore với độ trễ siêu thấp (<35ms) schema linh hoạt.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ ba là **Azure Cosmos DB (`cosmos-diepcustom`)**. Nhóm lựa chọn cơ sở dữ liệu NoSQL này để lưu trữ lâu dài (Persistent Storage) thông tin người chơi và kỷ lục điểm số cao nhất (HighScore). Dữ liệu được lưu trong Container `players` với Partition Key `/playerId` giúp tối ưu tốc độ đọc ghi với độ trễ siêu thấp dưới 35ms. Mỗi khi người chơi ghi điểm cao hoặc ngắt kết nối, game server sẽ tự động cập nhật document JSON vào Cosmos DB mà không làm gián đoạn trải nghiệm chơi game."*
+### 3. Azure Cosmos DB NoSQL (`cosmos-diepcustom`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Đường dẫn Azure Portal:** `Resource groups` $\rightarrow$ `rg-diepcustom` $\rightarrow$ `cosmos-diepcustom` $\rightarrow$ **`Data Explorer`** $\rightarrow$ Database `diepcustom-db` $\rightarrow$ Container `players` $\rightarrow$ `Items` $\rightarrow$ Bấm **`Refresh`**.
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ ba là **Azure Cosmos DB (`cosmos-diepcustom`)**. Mở màn hình Data Explorer trên Portal, thầy có thể thấy trực tiếp các document JSON lưu trữ hồ sơ người chơi và điểm số cao nhất (HighScore). Dữ liệu được lưu với Partition Key `/playerId` giúp tối ưu tốc độ đọc ghi với độ trễ siêu thấp dưới 35ms, đảm bảo khi người chơi ghi điểm cao là dữ liệu lập tức được ghi nhận vĩnh viễn vào NoSQL Database."*
 
 ---
 
-### 4. Cache for Redis (`redis-diepcustom`)
-* **Nội dung slide:** Lưu cache phiên chơi ngắt kết nối với TTL 60s để phục hồi trạng thái.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ tư là **Azure Cache for Redis (`redis-diepcustom`)**. Dịch vụ này đóng vai trò là bộ nhớ đệm In-Memory Cache lưu trên RAM với độ trễ đọc ghi dưới 1ms. Khi người chơi bị rớt mạng tạm thời hoặc F5, hệ thống lưu vết thông tin phiên kết nối `session:${sessionId}` lên Redis với thời gian sống **TTL 60 giây đếm ngược** qua cổng mã hóa an toàn TLS 1.2 Port 10000 SSL. Nhờ Redis, hệ thống giải phóng bớt áp lực truy vấn cho Cosmos DB, đồng thời tạo ra bộ nhớ dùng chung (Centralized Cache) để các Container Replicas khác nhau có thể nhận diện phiên người chơi khi hệ thống tự động scale."*
+### 4. Azure Cache for Redis (`redis-diepcustom`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Cách 1: Lệnh Test PING (Trả về `AZURE REDIS RESPONSE: PONG`):**
+    ```powershell
+    node -e "const Redis = require('ioredis'); const r = new Redis('rediss://default:DAuMJ1npenQONxt4lrOSGk-f4oy2U2DDgAZCAMHAXSA%3D@redis-diepcustom.southeastasia.redis.azure.net:10000', {maxRetriesPerRequest:1}); r.ping().then(res => { console.log('AZURE REDIS RESPONSE:', res); process.exit(0); });"
+    ```
+  - **Cách 2: Lệnh Đọc Chìa Khóa Phiên & Số Giây TTL Đếm Ngược:**
+    ```powershell
+    node -e "const Redis = require('ioredis'); const r = new Redis('rediss://default:DAuMJ1npenQONxt4lrOSGk-f4oy2U2DDgAZCAMHAXSA%3D@redis-diepcustom.southeastasia.redis.azure.net:10000', {maxRetriesPerRequest:1}); r.keys('session:*').then(keys => { console.log('AZURE REDIS LIVE SESSION KEYS:', keys); if (keys.length > 0) return r.ttl(keys[0]); }).then(ttl => console.log('REMAINING TTL (SECONDS):', ttl)).then(() => process.exit(0));"
+    ```
+  - **Cách 3: Lệnh Xem Chi Tiết JSON Lưu Trữ Phiên Trong Redis:**
+    ```powershell
+    node -e "const Redis = require('ioredis'); const r = new Redis('rediss://default:DAuMJ1npenQONxt4lrOSGk-f4oy2U2DDgAZCAMHAXSA%3D@redis-diepcustom.southeastasia.redis.azure.net:10000', {maxRetriesPerRequest:1}); r.keys('session:*').then(keys => { console.log('AZURE REDIS LIVE SESSION KEYS:', keys); if (keys.length > 0) return r.get(keys[0]); }).then(val => console.log('SESSION DATA IN REDIS:', val)).then(() => process.exit(0));"
+    ```
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ tư là **Azure Cache for Redis (`redis-diepcustom`)**. Em vừa thực thi các câu lệnh Node.js kết nối trực tiếp cổng mã hóa SSL TLS 1.2 Port 10000 đến Azure Redis. Thầy có thể thấy ngay chìa khóa `session:<sessionId>` thực tế nằm trên RAM Redis kèm số giây TTL đếm ngược. Khi người chơi đứt mạng, Redis lưu vết phiên trong 60 giây để khôi phục trạng thái, giải phóng áp lực đọc ghi cho Cosmos DB."*
 
 ---
 
-### 5. Blob Storage (`stdiepcustomavt`)
-* **Nội dung slide:** Lưu trữ tài nguyên tĩnh (Static Assets), phân phối tệp Avatar (.svg) với quyền đọc.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ năm là **Azure Blob Storage (`stdiepcustomavt`)**. Nhóm áp dụng nguyên tắc thiết kế **Offloading Static Assets** — tức là tách toàn bộ ảnh vector Avatar động (.svg) ra khỏi Game Server và lưu trên Blob Storage với quyền đọc công khai (Anonymous Blob Access). Khi trình duyệt web client tải game, nó lấy trực tiếp ảnh từ URL Blob công khai, giúp giảm 100% tải CPU và băng thông tĩnh cho Game Server chính."*
+### 5. Azure Blob Storage (`stdiepcustomavt`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Đường dẫn Azure Portal:** `Resource groups` $\rightarrow$ `rg-diepcustom` $\rightarrow$ `stdiepcustomavt` $\rightarrow$ **`Containers`** $\rightarrow$ `avatars`.
+  - **URL Trình duyệt / Lệnh cURL:**
+    ```powershell
+    curl.exe -sI https://stdiepcustomavt.blob.core.windows.net/avatars/avatar1.svg
+    ```
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ năm là **Azure Blob Storage (`stdiepcustomavt`)**. Khi em gửi lệnh cURL kiểm tra URL tệp Avatar tĩnh, phản hồi trả về mã HTTP 200 OK. Nhóm áp dụng nguyên tắc Offloading Static Assets — đưa toàn bộ ảnh vector Avatar (.svg) lên Blob Storage với quyền đọc công khai, giúp giảm 100% tải CPU và băng thông tĩnh cho Game Server."*
 
 ---
 
-### 6. Functions Storage (`stdiepcustomfunc`)
-* **Nội dung slide:** Storage Account chuyên dụng quản lý state, triggers, và logs cho Azure Functions.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ sáu kết thúc Slide 6 là **Functions Storage Account (`stdiepcustomfunc`)**. Đây là dịch vụ Storage đi kèm bắt buộc để hạ tầng Azure Functions quản lý các tệp cấu hình internal, trạng thái khởi động, mã hóa trigger và lưu trữ log vận hành cho hàm Serverless."*
+### 6. Functions Storage Account (`stdiepcustomfunc`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Đường dẫn Azure Portal:** `Resource groups` $\rightarrow$ `rg-diepcustom` $\rightarrow$ `stdiepcustomfunc` $\rightarrow$ Menu **`Containers`** (xem hệ thống tạo tự động `azure-webjobs-hosts`, `azure-webjobs-secrets`).
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ sáu chốt lại Slide 6 là **Functions Storage Account (`stdiepcustomfunc`)**. Mở màn hình Containers trên Portal, thầy có thể thấy các container hệ thống chuyên dụng quản lý trạng thái internal, lock, mã hóa trigger và lưu trữ log vận hành cho hàm Serverless Azure Functions."*
 
 ---
 
@@ -56,52 +81,81 @@
 ---
 
 ### 1. Azure Functions (`func-diepcustom`)
-* **Nội dung slide:** Cung cấp HTTP API Serverless độc lập xuất dữ liệu Leaderboard JSON.
-> **Lời thuyết trình tự nhiên:**  
-> *"Sang Slide 7, dịch vụ đầu tiên là **Azure Functions (`func-diepcustom`)**. Tụi em xây dựng API Bảng xếp hạng Top 10 người chơi chạy hoàn toàn trên mô hình Serverless Consumption Plan. API `/api/leaderboard` đọc dữ liệu độc lập từ Cosmos DB và xuất kết quả dạng JSON cho client. Việc tách riêng API này ra Azure Functions giúp người dùng xem bảng xếp hạng thoải mái mà không hề gây tiêu tốn CPU/RAM của Game Server."*
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **URL API công khai:** `https://func-diepcustom.azurewebsites.net/api/leaderboard`
+  - **Lệnh cURL PowerShell:**
+    ```powershell
+    curl.exe -s https://func-diepcustom.azurewebsites.net/api/leaderboard
+    ```
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Sang Slide 7, dịch vụ đầu tiên là **Azure Functions (`func-diepcustom`)**. Em vừa chạy lệnh cURL tới endpoint `/api/leaderboard`, kết quả trả về chuỗi JSON chứa Top 10 người chơi có điểm cao nhất. API Serverless này đọc độc lập từ Cosmos DB mà không làm tiêu tốn CPU/RAM của Game Server chính."*
 
 ---
 
-### 2. Service Bus (`sb-diepcustom`)
-* **Nội dung slide:** Đóng vai trò Message Broker (Pub/Sub) phân phối sự kiện bất đồng bộ.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ hai là **Azure Service Bus (`sb-diepcustom`)**. Nhóm triển khai kiến trúc Event-Driven dựa trên mô hình Pub/Sub. Khi hệ thống có thông báo sự kiện lớn (như thông báo bảo trì hay thông báo sự kiện toàn server), Game Server sẽ phát một bản tin vào Service Bus Topic `global-announcements`. Bản tin này được chia ra 2 Subscriptions độc lập: `sub-global-broadcast` truyền tin tới các phòng chơi khác, và `logicapp-sub` để chuyển cho hệ thống tự động hóa bên ngoài."*
+### 2. Azure Service Bus (`sb-diepcustom`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Đường dẫn Azure Portal:** `Resource groups` $\rightarrow$ `rg-diepcustom` $\rightarrow$ `sb-diepcustom` $\rightarrow$ `Topics` $\rightarrow$ `global-announcements` $\rightarrow$ Menu **`Service Bus Explorer`** $\rightarrow$ Chọn **Send messages**.
+  - **Nội dung JSON Body Copy-Paste:**
+    ```json
+    {
+      "announcementText": "Hệ thống DiepCustom chuẩn bị bảo trì trong 5 phút!",
+      "sender": "Admin System"
+    }
+    ```
+    Bấm nút **`Send`**.
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ hai là **Azure Service Bus (`sb-diepcustom`)**. Em đang sử dụng công cụ Service Bus Explorer trên Portal để phát một bản tin sự kiện bảo trì vào Topic `global-announcements`. Bản tin này lập tức được phân phối bất đồng bộ sang 2 Subscriptions cho các phòng chơi và hệ thống tự động hóa."*
 
 ---
 
-### 3. Logic Apps (`logic-diepcustom-announce`)
-* **Nội dung slide:** Lắng nghe Subscription để kích hoạt HTTP POST ra Discord Webhook.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ ba là **Azure Logic Apps (`logic-diepcustom-announce`)**. Đây là quy trình tự động hóa Serverless Workflow. Ngay khi có tin nhắn mới xuất hiện trong `logicapp-sub` của Service Bus, Logic Apps sẽ tự động nhận trigger và kích hoạt cuộc gọi HTTP POST Webhook, đẩy thẳng thông báo tự động sang kênh chat Discord trong thời gian chưa tới 1 giây mà không cần viết code server."*
+### 3. Azure Logic Apps (`logic-diepcustom-announce`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Đường dẫn Azure Portal:** `Resource groups` $\rightarrow$ `rg-diepcustom` $\rightarrow$ `logic-diepcustom-announce` $\rightarrow$ Menu **`Runs history`** (xem trạng thái `Succeeded`).
+  - **Kênh Discord:** Mở kênh Discord tích hợp thấy tin nhắn tự động vừa nổ về trong chưa tới 1 giây!
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ ba là **Azure Logic Apps (`logic-diepcustom-announce`)**. Ngay sau khi em gửi bản tin Service Bus, mở màn hình Runs History của Logic Apps thấy xuất hiện lượt chạy `Succeeded`, và trên kênh Discord lập tức nổ tin nhắn thông báo tự động từ BOT mà không cần nhóm phải viết code server."*
 
 ---
 
-### 4. Key Vault (`kv-diepcustom`)
-* **Nội dung slide:** Quản lý tập trung, bảo mật tuyệt đối 6 secrets và connection strings.
-> **Lời thuyết trình tự nhiên:**  
-> *"Về mặt bảo mật, dịch vụ thứ tư là **Azure Key Vault (`kv-diepcustom`)** được nhóm dùng để quản lý tập trung và bảo mật tuyệt đối 6 secrets quan trọng. Container Apps lấy mật khẩu hoàn toàn tự động qua cú pháp **Key Vault Reference** (`@Microsoft.KeyVault(...)`) kết hợp với cơ chế định danh **System-Assigned Managed Identity** và phân quyền RBAC `Key Vault Secrets User`. Nhờ đó, tuyệt đối không có bất kỳ mật khẩu nào bị hardcode trên Git."*
+### 4. Azure Key Vault (`kv-diepcustom`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Màn hình 1 (Container App Env):** `ca-diepcustom-server` $\rightarrow$ `Containers` $\rightarrow$ Menu `Environment variables` (xem cú pháp `@Microsoft.KeyVault(SecretUri=...)`).
+  - **Màn hình 2 (Key Vault Secret):** `kv-diepcustom` $\rightarrow$ Menu `Secrets` (xem 6 secret bảo mật).
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ tư là **Azure Key Vault (`kv-diepcustom`)**. Như thầy thấy trên màn hình Environment Variables của Container App, toàn bộ 6 mật khẩu nhạy cảm đều được trích xuất an toàn từ Key Vault qua cú pháp Key Vault Reference kết hợp System-Assigned Managed Identity, tuyệt đối không có mật khẩu nào bị lộ trên Git."*
 
 ---
 
-### 5. App Config (`appconfig-diepcustom`)
-* **Nội dung slide:** Cấu hình các tham số vận hành tĩnh (max-players-per-room, arena-type), cập nhật tức thì qua Restart Revision.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ năm là **Azure App Configuration (`appconfig-diepcustom`)**. Nhóm tách hoàn toàn các tham số cấu hình vận hành — như số người chơi tối đa một phòng `max-players-per-room` và chế độ chơi `arena-type` — ra khỏi code và quản lý tập trung trên App Configuration. Khi quản trị viên thay đổi giá trị trên Portal, nhóm chỉ cần thao tác **Restart Revision** trên Container App là Server sẽ tự động nạp lại thông số mới thể hiện rõ trong Log Stream, hoàn toàn không cần phải Rebuild Docker Image."*
+### 5. Azure App Configuration (`appconfig-diepcustom`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Màn hình 1 (App Config Explorer):** `appconfig-diepcustom` $\rightarrow$ `Configuration explorer` (xem key `max-players-per-room` = `2` hoặc `30`).
+  - **Màn hình 2 (Restart Revision & Log Stream):** `ca-diepcustom-server` $\rightarrow$ `Revisions and replicas` $\rightarrow$ Restart Revision $\rightarrow$ `Log stream` (xem log `[AppConfig] Fetched max-players-per-room: ...`).
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ năm là **Azure App Configuration (`appconfig-diepcustom`)**. Em quản lý tập trung thông số `max-players-per-room` tại đây. Khi em sửa giá trị trên Portal và bấm Restart Revision, mở Log Stream thấy Server lập tức nạp tham số mới mà không cần phải Rebuild Docker Image."*
 
 ---
 
-### 6. App Insights (`appi-diepcustom`)
-* **Nội dung slide:** Giám sát APM (Application Performance Management), vẽ sơ đồ và đo độ trễ.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ thứ sáu là **Azure Application Insights (`appi-diepcustom`)**. Đây là công cụ APM đo lường hiệu năng chuyên sâu. Dịch vụ tự động vẽ sơ đồ **Application Map** trực quan thể hiện mối tương quan kết nối giữa Container Apps và Cosmos DB với độ trễ phản hồi thực tế đạt **33.5ms**, giúp nhóm phát hiện và xử lý sớm các điểm nghẽn hiệu năng."*
+### 6. Azure Application Insights (`appi-diepcustom`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **Đường dẫn Azure Portal:** `Resource groups` $\rightarrow$ `rg-diepcustom` $\rightarrow$ `appi-diepcustom` $\rightarrow$ Menu **`Application map`**.
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ thứ sáu là **Azure Application Insights (`appi-diepcustom`)**. Mở màn hình Application Map trên Portal, thầy có thể thấy sơ đồ kết nối trực quan giữa Container Apps và Cosmos DB với đo lường độ trễ phản hồi thực tế đạt **33.5ms**, giúp nhóm giám sát hiệu năng toàn hệ thống thời gian thực."*
 
 ---
 
-### 7. Entra ID (`ca-diepcustom-server`)
-* **Nội dung slide:** Cung cấp cơ chế xác thực danh tính cấp hạ tầng, redirect Google OAuth2.
-> **Lời thuyết trình tự nhiên:**  
-> *"Dịch vụ cuối cùng chốt lại Slide 7 là **Azure Entra ID / Easy Auth**. Nhóm tận dụng tính năng Easy Auth tích hợp sẵn của Container Apps để xử lý đăng nhập Google OAuth2. Khi người dùng truy cập đường dẫn `/.auth/login/google`, hạ tầng Azure tự động trả về phản hồi HTTP 302 Redirect sang trang xác thực của Google, giúp đảm bảo an toàn danh tính mà không cần tự viết lớp code OAuth2 phức tạp."*
+### 7. Azure Entra ID / Easy Auth (`ca-diepcustom-server`)
+* **🖥️ Thao Tác Demo Trực Tiếp:**
+  - **URL Test Đăng nhập Google Easy Auth:**
+    ```text
+    https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/login/google
+    ```
+  - **Lệnh cURL PowerShell kiểm tra Redirect HTTP 302:**
+    ```powershell
+    curl.exe -i -X GET https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/login/google
+    ```
+* **🗣️ Lời Thuyết Trình (Vừa Nói Vừa Demo):**  
+  > *"Dịch vụ cuối cùng chốt lại Slide 7 là **Azure Entra ID / Easy Auth**. Khi em chạy lệnh cURL, hạ tầng Azure trả về phản hồi HTTP 302 Redirect chuyển hướng sang Google OAuth2. Dịch vụ Easy Auth tự động xử lý xác thực và cấp Cookie an toàn cho client mà không cần tự viết code xác thực phức tạp."*
 
 ---
 
-*Tài liệu Kịch bản Thuyết trình Slide 6 & 7 Rút gọn 13 Dịch vụ Azure — Hoàn chỉnh 06/08/2026.*
+*Tài liệu Kịch bản Thuyết trình Kết hợp Demo Day 13 Dịch vụ Azure — Hoàn chỉnh 06/08/2026.*
