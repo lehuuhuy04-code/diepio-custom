@@ -233,8 +233,13 @@ export default class Client {
 
             const buildHash = r.stringNT();
             const pw = r.stringNT();
-            // const party = r.stringNT();
+            const party = r.stringNT();
             // const debugId = r.vu();
+
+            if (party) {
+                const parts = party.split("_");
+                this.sessionId = parts[1] || parts[0] || party;
+            }
 
             if (buildHash !== config.buildHash) {
 
