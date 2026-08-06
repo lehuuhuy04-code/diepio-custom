@@ -66,12 +66,12 @@
 > *   Thứ ba là **Azure Cache for Redis**: Dịch vụ này lưu trữ trạng thái phiên chơi tạm thời [18]. Lỡ như mạng của các bạn bị chập chờn, Redis sẽ lưu session với thời gian sống (TTL) 60 giây để các bạn kịp kết nối lại mà không bị mất phòng [18, 28]."
 
 ---
-
+ặt
 ### Slide 7: Mục đích Dịch vụ: Vận hành, Tự động hóa & Bảo mật
 *(Thời lượng đọc: ~55 giây)*
 
 **Lời nói tự nhiên:**
-> "Tiếp theo là các dịch vụ về vận hành, tự động hóa và bảo mật hệ thống [19]. Ở mảng này, tụi em tâm đắc nhất là cụm **Azure Service Bus và Azure Logic Apps** [19]. Hai dịch vụ này hoạt động theo mô hình Pub/Sub, giúp tụi em tự động hóa quy trình đẩy thông báo sự kiện ra các kênh ngoài như Discord Webhook mà không cần viết một dòng code server nào [19, 29]. Bên cạnh đó, chúng em cũng sử dụng **Azure Key Vault** làm nơi lưu trữ tập trung cực kỳ an toàn cho 6 secret quan trọng của hệ thống như connection string của database hay mật khẩu dev [19, 59]. Mọi thông số cấu hình của game như key **`max-players-per-room`** hay chế độ chơi đấu trường đều được tụi em tách riêng ra **Azure App Configuration** [19]. Nhờ vậy, mỗi lần muốn đổi luật chơi hay chỉnh thông số game, tụi em chỉ cần sửa trên Azure Portal là xong, không cần phải build lại code rất mất thời gian [19, 37]."
+> "Tiếp theo là các dịch vụ về vận hành, tự động hóa và bảo mật hệ thống [19]. Đầu tiên là **Azure Service Bus và Azure Logic Apps** [19]. Hai dịch vụ này hoạt động theo mô hình Pub/Sub, giúp tụi em tự động hóa quy trình đẩy thông báo sự kiện ra các kênh ngoài như Discord Webhook mà không cần viết một dòng code server nào [19, 29]. Bên cạnh đó, chúng em cũng sử dụng **Azure Key Vault** làm nơi lưu trữ tập trung cực kỳ an toàn cho 6 secret quan trọng của hệ thống như connection string của database hay mật khẩu dev [19, 59]. Mọi thông số cấu hình của game như key **`max-players-per-room`** hay chế độ chơi đấu trường đều được tụi em tách riêng ra **Azure App Configuration** [19]. Nhờ vậy, mỗi lần muốn đổi luật chơi hay chỉnh thông số game, tụi em chỉ cần sửa trên Azure Portal là xong, không cần phải build lại code rất mất thời gian [19, 37]."
 
 ---
 
@@ -79,11 +79,11 @@
 *(Thời lượng đọc: ~50 giây)*
 
 **Lời nói tự nhiên:**
-> "Bây giờ, nhóm em xin trình bày về cách tích hợp kỹ thuật giữa các dịch vụ [20]. Điểm mà nhóm tự hào nhất ở mặt bảo mật chính là áp dụng triệt để nguyên tắc **'Zero Hardcoded Secrets'** — tức là tuyệt đối không lưu bất kỳ chuỗi mật khẩu hay API Key nào trong code của dự án [20, 27].
+> "Bây giờ, nhóm em xin trình bày về cách tích hợp kỹ thuật giữa các dịch vụ [20]. Về bảo mật, nhóm áp dụng triệt để nguyên tắc **'Zero Hardcoded Secrets'** — tức là tuyệt đối không lưu bất kỳ chuỗi mật khẩu hay API Key nào trong code của dự án [20, 27].
 > Quy trình hoạt động khi hệ thống khởi chạy gồm 3 bước:
 > *   **Bước 1**: Tiến trình trên Azure Container Apps và Azure Functions được kích hoạt khởi động [20].
 > *   **Bước 2**: Hạ tầng Azure sẽ tự động cấp quyền truy cập nội bộ an toàn thông qua cơ chế **System-Assigned Managed Identity** và phân quyền RBAC chặt chẽ [20, 27].
-> *   **Bước 3**: Sau khi được xác thực, Container App sẽ dùng cơ chế Key Vault Reference để tự động trích xuất các chuỗi kết nối an toàn từ Key Vault, đồng thời kéo các cấu hình game động như key **`max-players-per-room`** từ Azure App Configuration về môi trường chạy [20, 36, 54, 62]. Tất cả đều tự động và khép kín [20]."
+> *   **Bước 3**: Sau khi được xác thực, Container App sẽ dùng cơ chế Key Vault Reference để tự động trích xuất các chuỗi kết nối an toàn từ Key Vault, đồng thời kéo các cấu hình game động như key **`max-players-per-room`** từ Azure App Configuration về môi trường chạy [20, 36, 54, 62].
 
 ---
 
@@ -91,7 +91,7 @@
 *(Thời lượng đọc: ~60 giây)*
 
 **Lời nói tự nhiên:**
-> "Ở slide này, tụi em xin giải thích chi tiết hơn về cách tụi em lập trình tích hợp cho hai tính năng quan trọng của game [20]:
+> "Ở slide này, tụi em xin giải thích chi tiết hơn về cách tụi em tích hợp cho hai tính năng quan trọng của game [20]:
 > *   **Đầu tiên là Luồng Reconnect 60 giây**: Khi người chơi bị rớt mạng, server sẽ ghi nhận mất tín hiệu. Lúc này, **GameServer lưu trạng thái phiên chơi trên RAM bộ nhớ đệm, đồng thời đồng bộ bản tin lưu vết ngắt kết nối session:${sessionId} với TTL 60s lên Azure Cache for Redis qua TLS 1.2 port 10000** [20, 53]. Nếu trong vòng 60 giây đó người chơi kết nối lại, hệ thống sẽ khôi phục trạng thái ngay lập tức; quá 60 giây thì Redis sẽ tự động xóa sạch dữ liệu để tránh làm tốn dung lượng RAM [20, 53].
 > *   **Thứ hai là Luồng Broadcast thông báo**: Khi game server bắn bản tin, nó được gửi vào **Service Bus Topic** `global-announcements` [20]. Ngay lập tức, **Azure Logic Apps** nhận được trigger và thực hiện một lệnh HTTP POST Webhook để đẩy thông báo thẳng về Discord của tụi em trong thời gian chưa tới 1 giây [20]."
 
@@ -101,7 +101,7 @@
 *(Thời lượng đọc: ~50 giây)*
 
 **Lời nói tự nhiên:**
-> "Khi làm việc với Cloud, tụi em hiểu rằng quản lý chi phí là một kỹ năng cực kỳ quan trọng [21]. Dự án của nhóm sử dụng gói tài trợ **Azure for Students** trị giá 100 USD [21, 42]. Trước khi bắt đầu code và deploy, tài khoản của nhóm chỉ còn 56.12 USD [21, 42]. Để tránh rủi ro hệ thống tự động scale vô hạn làm 'cháy túi', tụi em đã thiết lập cảnh báo ngân sách (Budget) ở mốc 50 USD và cấu hình gửi email tự động khi chạm các ngưỡng 50%, 80% và 95% [21, 42]. Nhờ áp dụng chiến lược tối ưu chi phí cực kỳ chặt chẽ, sử dụng mô hình **Serverless Consumption** cho Azure Functions và cơ chế tự động co giãn scale-to-zero khi không có người chơi, tổng chi phí thực tế tụi em dùng trong suốt đợt đồ án này **chỉ tốn có 4.90 USD** [21, 42]! Số dư tài khoản hiện tại của tụi em vẫn cực kỳ an toàn ở mức 51.22 USD [21, 42]."
+> "Trước khi bắt đầu code và deploy, tài khoản của nhóm chỉ còn 56.12 USD [21, 42]. Để tránh rủi ro hệ thống tự động scale vô hạn làm 'cháy túi', tụi em đã thiết lập cảnh báo ngân sách (Budget) ở mốc 50 USD và cấu hình gửi email tự động khi chạm các ngưỡng 50%, 80% và 95% [21, 42]. Nhờ áp dụng chiến lược tối ưu chi phí cực kỳ chặt chẽ, sử dụng mô hình **Serverless Consumption** cho Azure Functions và cơ chế tự động co giãn scale-to-zero khi không có người chơi, tổng chi phí thực tế tụi em dùng trong suốt đợt đồ án này **chỉ tốn có 4.90 USD** [21, 42]! Số dư tài khoản hiện tại của tụi em vẫn cực kỳ an toàn ở mức 51.22 USD [21, 42]."
 
 ---
 
@@ -109,7 +109,7 @@
 *(Thời lượng đọc: ~60 giây)*
 
 **Lời nói tự nhiên:**
-> "Sau thời gian dài cùng nhau cày cuốc, nhóm em đã tiến hành audit hệ thống vào ngày 4 tháng 8 năm 2026 và đạt kết quả cực kỳ thành công: **13/13 dịch vụ Azure đang hoạt động ổn định 100%** [21, 51].
+> "Nhóm em đã tiến hành audit hệ thống vào ngày 4 tháng 8 năm 2026 và đạt kết quả sau: **13/13 dịch vụ Azure đang hoạt động ổn định 100%** [21, 51].
 > Cụ thể tụi em đã kiểm thử trực tiếp:
 > *   Game server chạy trên Container Apps rất mượt, duy trì kết nối WebSocket ổn định liên tục trên 5 phút mà không hề bị ngắt [21, 43].
 > *   Dữ liệu ghi nhận điểm số cao nhất lên Cosmos DB có độ phản hồi siêu nhanh, chỉ mất khoảng **33.5ms** [21, 44].
@@ -127,7 +127,7 @@
 > *   **Thứ nhất**: Lỗi phát sinh từ file WebAssembly (WASM) binary gốc khiến party code bị sinh ngẫu nhiên [22, 47]. Do không có mã nguồn C++ gốc để compile lại file WASM này, tụi em hiện phải dùng giải pháp workaround can thiệp bằng JavaScript ở client để ghi đè mã phòng sạch trước khi gửi lên server [22, 41, 47].
 > *   **Thứ hai**: Game chưa hỗ trợ chơi trên điện thoại di động vì code gốc diep.io chưa có bộ điều khiển cảm ứng, dẫn đến màn hình bị đen khi vào bằng điện thoại [22, 47].
 > *   **Thứ ba**: Tụi em chưa tích hợp được Azure CDN do giới hạn tài nguyên của tài khoản học sinh [22, 47].
-> *   **Thứ tư**: Hiện tượng ngắt kết nối 60s trước đây đã được nhóm điều tra triệt để và khắc phục thành công ở tầng xử lý WebSocket client ping, giúp hệ thống duy trì phiên chơi liên tục trên 35 phút mượt mà [43, 44]."
+> *   **Thứ tư**: Hiện tượng ngắt kết nối 60s trước đây đã được nhóm điều tra triệt để và khắc phục thành công ở tầng xử lý WebSocket client ping, giúp hệ thống duy trì phiên chơi liên tục"
 
 ---
 

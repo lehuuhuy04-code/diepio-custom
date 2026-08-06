@@ -134,6 +134,11 @@
   ```powershell
   node -e "const Redis = require('ioredis'); const r = new Redis('rediss://default:DAuMJ1npenQONxt4lrOSGk-f4oy2U2DDgAZCAMHAXSA%3D@redis-diepcustom.southeastasia.redis.azure.net:10000', {maxRetriesPerRequest:1}); r.ping().then(res => { console.log('AZURE REDIS RESPONSE:', res); process.exit(0); });"
   ```
+
+  ```powershell
+  node -e "const Redis = require('ioredis'); const r = new Redis('rediss://default:DAuMJ1npenQONxt4lrOSGk-f4oy2U2DDgAZCAMHAXSA%3D@redis-diepcustom.southeastasia.redis.azure.net:10000', {maxRetriesPerRequest:1}); r.keys('session:*').then(keys => { console.log('AZURE REDIS LIVE SESSION KEYS:', keys); if (keys.length > 0) return r.ttl(keys[0]); }).then(ttl => console.log('REMAINING TTL (SECONDS):', ttl)).then(() => process.exit(0));"
+  ```
+
 * **Bước 2 (Kỳ vọng thấy gì):** Terminal phản hồi thành công `AZURE REDIS RESPONSE: PONG`. Đồng thời trong `Log stream` của Container App hiển thị: `[RedisStore] Connected to Azure Cache for Redis.`
 * **Bước 3 (Lời giải thích cho Giảng viên):**  
   *"Dịch vụ Azure Cache for Redis được cấu hình và kết nối xác thực an toàn qua SSL Port 10000 với giao thức mã hóa TLS 1.2. Hệ thống quản lý bộ nhớ đệm In-memory fallback layer cho các phiên kết nối ngắt tạm thời (Session Reconnect), đồng thời sẵn sàng ghi nhận chìa khóa phiên `session:${sessionId}` với TTL 60s đếm ngược."*
