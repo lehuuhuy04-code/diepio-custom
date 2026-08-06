@@ -85,6 +85,7 @@ npm install
 
 ### 3. Biên Dịch TypeScript & Khởi Chạy
 ```bash
+
 # Check syntax & build bundle
 npm run build
 
