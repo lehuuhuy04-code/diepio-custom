@@ -72,12 +72,55 @@
             border: 0;
             outline: none;
         }
+
+        #authOverlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            font-family: 'Ubuntu', sans-serif;
+        }
+
+        #googleLoginBtn {
+            background: linear-gradient(135deg, #4285F4, #34A853);
+            color: #FFFFFF;
+            border: none;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #googleLoginBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(66,133,244,0.4);
+        }
+
+        #userStatusBadge {
+            display: none;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
     </style>
 
     <link href="https://fonts.googleapis.com/css?family=Ubuntu:700" rel="stylesheet" type="text/css" />
 </head>
 
 <body>
+    <div id="authOverlay">
+        <button id="googleLoginBtn">Log in with Google</button>
+        <div id="userStatusBadge"></div>
+    </div>
     <span id="loading">Loading...</span>
     <canvas id="canvas" width="800" height="800"></canvas>
     <div style="font-family:'Ubuntu'">&nbsp;</div>
@@ -116,6 +159,60 @@
                 window.history.replaceState(null, null, "#" + newHash + "_" + sessionToken);
             }
         });
+
+        // Google Login Overlay & Auth Status Handler
+        document.getElementById("googleLoginBtn").addEventListener("click", () => {
+            const redirectUri = encodeURIComponent(window.location.href);
+            window.location.href = "https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/login/google?post_login_redirect_uri=" + redirectUri;
+        });
+
+        async function checkLoginStatus() {
+            try {
+                const res = await fetch("https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/me", { credentials: "include" });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.length > 0 && data[0].user_id) {
+                        const user = data[0];
+                        let displayName = user.user_id;
+                        if (user.user_claims && Array.isArray(user.user_claims)) {
+                            const nameClaim = user.user_claims.find(c => c.typ && (c.typ.endsWith("/name") || c.typ.endsWith("/emailaddress")));
+                            if (nameClaim && nameClaim.val) {
+                                displayName = nameClaim.val;
+                            }
+                        }
+
+                        const loginBtn = document.getElementById("googleLoginBtn");
+                        const badge = document.getElementById("userStatusBadge");
+                        if (loginBtn) loginBtn.style.display = "none";
+                        if (badge) {
+                            badge.style.display = "inline-block";
+                            badge.textContent = "Đã đăng nhập: " + displayName;
+                        }
+
+                        // Send Welcome notification to Discord via Azure Functions (Once per session)
+                        if (!sessionStorage.getItem("welcome_sent")) {
+                            sessionStorage.setItem("welcome_sent", "true");
+                            sendWelcomeNotification();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log("[Auth] Check login status failed:", e);
+            }
+        }
+
+        async function sendWelcomeNotification() {
+            try {
+                await fetch("https://func-diepcustom.azurewebsites.net/api/welcome", {
+                    method: "POST",
+                    credentials: "include"
+                });
+            } catch (e) {
+                console.log("[Auth] Welcome notification failed:", e);
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", checkLoginStatus);
     </script>
 
 
