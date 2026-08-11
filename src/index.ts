@@ -115,25 +115,45 @@ app.get("/*", (res, req) => {
                 return;
             case "/auth-done": {
                 const principalHeader = req.getHeader('x-ms-client-principal');
-                let displayName = "Game Player";
+                const principalNameHeader = req.getHeader('x-ms-client-principal-name');
+                let displayName = principalNameHeader || "Game Player";
+
                 if (principalHeader) {
                     try {
                         const jsonStr = Buffer.from(principalHeader, 'base64').toString('utf-8');
                         const parsed = JSON.parse(jsonStr);
-                        if (parsed.claims && Array.isArray(parsed.claims)) {
-                            const nameClaim = parsed.claims.find((c: any) => c.typ && (c.typ.endsWith('/name') || c.typ.endsWith('/emailaddress')));
+                        const claims = parsed.claims || parsed.user_claims || [];
+                        if (Array.isArray(claims)) {
+                            const nameClaim = claims.find((c: any) => c.typ && (c.typ.endsWith('/name') || c.typ.endsWith('/emailaddress') || c.typ === 'name' || c.typ === 'email'));
                             if (nameClaim && nameClaim.val) displayName = nameClaim.val;
-                        } else if (parsed.user_id) {
+                        }
+                        if (displayName === "Game Player" && parsed.user_id) {
                             displayName = parsed.user_id;
                         }
                     } catch (e) {
                         util.warn("[Auth] Failed to parse x-ms-client-principal header: " + e);
                     }
                 }
+
                 const redirectUrl = "https://stdiepcustomclient.z23.web.core.windows.net/#user=" + encodeURIComponent(displayName);
-                res.writeStatus("302 Found")
-                   .writeHeader("Location", redirectUrl)
-                   .end();
+                const htmlResponse = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0;url=${redirectUrl}">
+    <title>Logging in...</title>
+</head>
+<body>
+    <p>Authentication successful. Redirecting to <a href="${redirectUrl}">DiepCustom</a>...</p>
+    <script>
+        window.location.replace("${redirectUrl}");
+    </script>
+</body>
+</html>`;
+
+                res.writeStatus("200 OK")
+                   .writeHeader("Content-Type", "text/html; charset=utf-8")
+                   .end(htmlResponse);
                 return;
             }
             case "/tanks":
