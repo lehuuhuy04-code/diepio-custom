@@ -3,6 +3,9 @@ const { CosmosClient } = require('@azure/cosmos');
 const { DefaultAzureCredential } = require('@azure/identity');
 const { SecretClient } = require('@azure/keyvault-secrets');
 
+// Import welcome function trigger
+require('./welcome');
+
 let cachedConnectionString = null;
 let cosmosClient = null;
 
