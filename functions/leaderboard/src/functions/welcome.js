@@ -46,46 +46,6 @@ app.http('welcome', {
         }
 
         try {
-            let userDisplayName = null;
-
-            try {
-                const body = await request.json();
-                if (body && body.displayName) {
-                    userDisplayName = body.displayName;
-                }
-            } catch (e) {}
-
-            // Server-Side Self-Verification via Easy Auth /.auth/me (Fallback if no body)
-            if (!userDisplayName) {
-                const cookieHeader = request.headers.get('cookie');
-                if (cookieHeader) {
-                    try {
-                        const authMeRes = await fetch("https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/me", {
-                            headers: { "Cookie": cookieHeader }
-                        });
-                        if (authMeRes.ok) {
-                            const authMeData = await authMeRes.json();
-                            if (authMeData && authMeData.length > 0 && authMeData[0].user_id) {
-                                const user = authMeData[0];
-                                userDisplayName = user.user_id;
-                                if (user.user_claims && Array.isArray(user.user_claims)) {
-                                    const nameClaim = user.user_claims.find(c => c.typ && (c.typ.endsWith("/name") || c.typ.endsWith("/emailaddress")));
-                                    if (nameClaim && nameClaim.val) {
-                                        userDisplayName = nameClaim.val;
-                                    }
-                                }
-                            }
-                        }
-                    } catch (verifyErr) {
-                        context.log("Server self-verification via /.auth/me failed:", verifyErr);
-                    }
-                }
-            }
-
-            if (!userDisplayName) {
-                userDisplayName = "Người chơi DiepCustom";
-            }
-
             const webhookUrl = await getDiscordWebhookUrl();
             if (!webhookUrl) {
                 return {
@@ -97,7 +57,7 @@ app.http('welcome', {
 
             // Post Welcome notification to Discord
             const discordPayload = {
-                content: `🎉 **${userDisplayName}** vừa đăng nhập vào DiepCustom!`
+                content: `🎉 Một người chơi vừa xác thực thành công qua **Google** và tham gia DiepCustom!`
             };
 
             const discordRes = await fetch(webhookUrl, {

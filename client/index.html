@@ -162,44 +162,40 @@
 
         // Google Login Overlay & Auth Status Handler
         document.getElementById("googleLoginBtn").addEventListener("click", () => {
-            const redirectUri = encodeURIComponent("https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/api/auth-done");
-            window.location.href = "https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/login/google?post_login_redirect_uri=" + redirectUri;
+            const redirectTarget = "https://stdiepcustomclient.z23.web.core.windows.net/?logged_in=1";
+            window.location.href = "https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/login/google?post_login_redirect_uri=" + encodeURIComponent(redirectTarget);
         });
 
         function checkLoginStatus() {
-            let loggedUser = localStorage.getItem("diep_logged_user");
-            const hash = window.location.hash;
-            if (hash && hash.includes("user=")) {
-                const match = hash.match(/user=([^&]+)/);
-                if (match && match[1]) {
-                    loggedUser = decodeURIComponent(match[1]);
-                    localStorage.setItem("diep_logged_user", loggedUser);
-                }
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get("logged_in") === "1") {
+                localStorage.setItem("diep_google_authenticated", "true");
             }
 
-            if (loggedUser) {
+            const isAuthenticated = localStorage.getItem("diep_google_authenticated") === "true";
+
+            if (isAuthenticated) {
                 const loginBtn = document.getElementById("googleLoginBtn");
                 const badge = document.getElementById("userStatusBadge");
                 if (loginBtn) loginBtn.style.display = "none";
                 if (badge) {
                     badge.style.display = "inline-block";
-                    badge.textContent = "Đã đăng nhập: " + loggedUser;
+                    badge.textContent = "✓ Đã xác thực qua Google";
                 }
 
                 // Send Welcome notification to Discord via Azure Functions (Once per session)
                 if (!sessionStorage.getItem("welcome_sent")) {
                     sessionStorage.setItem("welcome_sent", "true");
-                    sendWelcomeNotification(loggedUser);
+                    sendWelcomeNotification();
                 }
             }
         }
 
-        async function sendWelcomeNotification(userName) {
+        async function sendWelcomeNotification() {
             try {
                 await fetch("https://func-diepcustom.azurewebsites.net/api/welcome", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ displayName: userName })
+                    headers: { "Content-Type": "application/json" }
                 });
             } catch (e) {
                 console.log("[Auth] Welcome notification failed:", e);
