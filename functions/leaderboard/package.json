@@ -2,7 +2,7 @@
   "name": "diepcustom-leaderboard-function",
   "version": "1.0.0",
   "description": "Azure Function to export top N leaderboard scores from Cosmos DB",
-  "main": "src/functions/leaderboard.js",
+  "main": "src/functions/*.js",
   "scripts": {
     "start": "func start"
   },
