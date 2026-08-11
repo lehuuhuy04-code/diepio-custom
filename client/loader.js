@@ -904,6 +904,8 @@ class ASMConsts {
     static enableTyping(left, top, width, height, enabled) {
         window.setTyping(true);
         Module.textInputContainer.style.display = "block";
+        const authOverlay = document.getElementById("authOverlay");
+        if (authOverlay) authOverlay.style.display = "block";
         Module.textInputContainer.style.position = "absolute";
         Module.textInputContainer.style.left = window.unscale(left) + "px";
         Module.textInputContainer.style.top = window.unscale(top) + "px";
@@ -922,6 +924,8 @@ class ASMConsts {
         Module.textInput.blur();
         Module.textInput.value = "";
         Module.textInputContainer.style.display = "none";
+        const authOverlay = document.getElementById("authOverlay");
+        if (authOverlay) authOverlay.style.display = "none";
     }
 
     static focusCanvas() {
