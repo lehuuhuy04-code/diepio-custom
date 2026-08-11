@@ -113,6 +113,29 @@ app.get("/*", (res, req) => {
             case "/":
                 res.writeStatus("200 OK").end();
                 return;
+            case "/auth-done": {
+                const principalHeader = req.getHeader('x-ms-client-principal');
+                let displayName = "Game Player";
+                if (principalHeader) {
+                    try {
+                        const jsonStr = Buffer.from(principalHeader, 'base64').toString('utf-8');
+                        const parsed = JSON.parse(jsonStr);
+                        if (parsed.claims && Array.isArray(parsed.claims)) {
+                            const nameClaim = parsed.claims.find((c: any) => c.typ && (c.typ.endsWith('/name') || c.typ.endsWith('/emailaddress')));
+                            if (nameClaim && nameClaim.val) displayName = nameClaim.val;
+                        } else if (parsed.user_id) {
+                            displayName = parsed.user_id;
+                        }
+                    } catch (e) {
+                        util.warn("[Auth] Failed to parse x-ms-client-principal header: " + e);
+                    }
+                }
+                const redirectUrl = "https://stdiepcustomclient.z23.web.core.windows.net/#user=" + encodeURIComponent(displayName);
+                res.writeStatus("302 Found")
+                   .writeHeader("Location", redirectUrl)
+                   .end();
+                return;
+            }
             case "/tanks":
                 res.writeStatus("200 OK").end(JSON.stringify(TankDefinitions));
                 return;
