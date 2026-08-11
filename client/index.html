@@ -111,6 +111,61 @@
             border-radius: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
+
+        #accountContainer {
+            display: none;
+            position: relative;
+        }
+
+        #accountBtn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+
+        #accountBtn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        #accountDropdown {
+            display: none;
+            position: absolute;
+            top: 40px;
+            right: 0;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 6px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+            min-width: 140px;
+        }
+
+        #logoutBtn {
+            width: 100%;
+            background: transparent;
+            color: #FF5252;
+            border: none;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: left;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #logoutBtn:hover {
+            background: rgba(255, 82, 82, 0.15);
+        }
     </style>
 
     <link href="https://fonts.googleapis.com/css?family=Ubuntu:700" rel="stylesheet" type="text/css" />
@@ -119,7 +174,12 @@
 <body>
     <div id="authOverlay">
         <button id="googleLoginBtn">Log in with Google</button>
-        <div id="userStatusBadge"></div>
+        <div id="accountContainer">
+            <button id="accountBtn">👤 Tài khoản ▾</button>
+            <div id="accountDropdown">
+                <button id="logoutBtn">🚪 Đăng xuất</button>
+            </div>
+        </div>
     </div>
     <span id="loading">Loading...</span>
     <canvas id="canvas" width="800" height="800"></canvas>
@@ -166,22 +226,44 @@
             window.location.href = "https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/login/google?post_login_redirect_uri=" + encodeURIComponent(redirectTarget);
         });
 
+        const accountBtn = document.getElementById("accountBtn");
+        const accountDropdown = document.getElementById("accountDropdown");
+        const logoutBtn = document.getElementById("logoutBtn");
+
+        if (accountBtn && accountDropdown) {
+            accountBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                accountDropdown.style.display = accountDropdown.style.display === "block" ? "none" : "block";
+            });
+
+            document.addEventListener("click", () => {
+                accountDropdown.style.display = "none";
+            });
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener("click", () => {
+                localStorage.removeItem("diep_google_authenticated");
+                sessionStorage.removeItem("welcome_sent");
+                const logoutRedirect = encodeURIComponent("https://stdiepcustomclient.z23.web.core.windows.net/");
+                window.location.href = "https://ca-diepcustom-server.ashypebble-5d6531bb.southeastasia.azurecontainerapps.io/.auth/logout?post_logout_redirect_uri=" + logoutRedirect;
+            });
+        }
+
         function checkLoginStatus() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get("logged_in") === "1") {
                 localStorage.setItem("diep_google_authenticated", "true");
+                window.history.replaceState(null, null, window.location.pathname + window.location.hash);
             }
 
             const isAuthenticated = localStorage.getItem("diep_google_authenticated") === "true";
 
             if (isAuthenticated) {
                 const loginBtn = document.getElementById("googleLoginBtn");
-                const badge = document.getElementById("userStatusBadge");
+                const accountContainer = document.getElementById("accountContainer");
                 if (loginBtn) loginBtn.style.display = "none";
-                if (badge) {
-                    badge.style.display = "inline-block";
-                    badge.textContent = "✓ Đã xác thực qua Google";
-                }
+                if (accountContainer) accountContainer.style.display = "block";
 
                 // Send Welcome notification to Discord via Azure Functions (Once per session)
                 if (!sessionStorage.getItem("welcome_sent")) {
